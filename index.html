@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HLU Dorm Drink</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3faf8;--card:#fff;--ink:#12343b;--mute:#5d7a80;--pri:#0e8a7d;--onpri:#fff;--acc:#ffd23f;--line:#d6e8e4;--bad:#c93a3a;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1f22;--card:#142b2f;--ink:#e6f3f1;--mute:#93b0b3;--pri:#2cc4b2;--onpri:#08201d;--line:#25444a;--bad:#ff7a7a}}
+:root[data-theme="dark"]{--bg:#0d1f22;--card:#142b2f;--ink:#e6f3f1;--mute:#93b0b3;--pri:#2cc4b2;--onpri:#08201d;--line:#25444a;--bad:#ff7a7a}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 "Be Vietnam Pro",system-ui,sans-serif;padding-bottom:76px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;padding:10px 16px}
+.logo{font-weight:800;font-size:18px;color:var(--pri);background:none;border:0;padding:0}
+.logo small{display:block;font-weight:400;font-size:10px;color:var(--mute)}
+header nav{display:none;gap:4px;margin-left:auto}
+.ic{position:relative;background:none;border:1px solid var(--line);border-radius:10px;padding:7px 11px}
+.sp{margin-left:auto}header nav+.ic{margin-left:0}
+.badge{position:absolute;top:-6px;right:-6px;background:var(--acc);color:#12343b;border-radius:99px;font-size:11px;font-weight:800;min-width:19px;height:19px;display:grid;place-items:center}
+.tab{background:none;border:0;padding:8px 12px;border-radius:8px;font-weight:600;color:var(--mute)}
+.tab.on{color:var(--pri);background:color-mix(in srgb,var(--pri) 12%,transparent)}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.hero{background:var(--pri);color:var(--onpri);border-radius:18px;padding:28px 22px;margin-bottom:18px;position:relative;overflow:hidden}
+.hero h1{margin:0 0 6px;font-size:clamp(24px,5vw,38px);line-height:1.15;font-weight:800;max-width:14ch}
+.hero p{margin:0 0 16px;opacity:.9}.hero .big{position:absolute;right:14px;bottom:-10px;font-size:92px;opacity:.9}
+.btn{background:var(--pri);color:var(--onpri);border:0;border-radius:10px;padding:11px 18px;font-weight:700}
+.btn.acc{background:var(--acc);color:#12343b}.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+.btn.bad{background:var(--bad);color:#fff}.btn.sm{padding:6px 11px;font-size:13px}.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.full{width:100%;padding:14px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);border-radius:99px;padding:7px 14px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h2{margin:6px 0 12px;font-size:20px}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.img{position:relative;aspect-ratio:1.2;display:grid;place-items:center;background:hsl(var(--h) 60% 88%);font-size:52px;cursor:pointer}
+@media(prefers-color-scheme:dark){.img{background:hsl(var(--h) 35% 24%)}}
+.img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cb{padding:10px 12px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
+.cb b{font-weight:600}.cat{font-size:12px;color:var(--mute)}.price{font-weight:800;color:var(--pri)}
+.tag{font-size:12px;font-weight:600}.tag.ok{color:var(--pri)}.tag.no{color:var(--bad)}
+.cb .btn{margin-top:auto}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:12px}.row .grow{flex:1;min-width:0}
+.th{width:56px;height:56px;border-radius:10px;display:grid;place-items:center;font-size:28px;background:hsl(var(--h) 60% 88%);position:relative;overflow:hidden;flex:none}
+@media(prefers-color-scheme:dark){.th{background:hsl(var(--h) 35% 24%)}}
+.th img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px}
+.qty button{background:none;border:0;width:34px;height:34px;font-size:18px}.qty span{min-width:26px;text-align:center;font-weight:600}
+.empty{text-align:center;color:var(--mute);padding:40px 12px}
+.sum{display:flex;justify-content:space-between;padding:4px 0}.sum.t{font-size:18px;font-weight:800;border-top:1px dashed var(--line);margin-top:6px;padding-top:10px}
+.f{display:grid;gap:10px}.f label{font-size:13px;font-weight:600;display:grid;gap:4px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tl{display:flex;margin:12px 0 4px}.tl div{flex:1;text-align:center;font-size:11px;color:var(--mute);position:relative}
+.tl div::before{content:"";display:block;width:14px;height:14px;border-radius:50%;background:var(--line);margin:0 auto 4px;position:relative;z-index:1}
+.tl div::after{content:"";position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--line)}.tl div:first-child::after{display:none}
+.tl .d{color:var(--ink)}.tl .d::before,.tl .d::after{background:var(--pri)}
+.st{font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--acc);color:#12343b}.st.x{background:var(--bad);color:#fff}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:grid;place-items:end center}
+.modal{background:var(--card);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
+@media(min-width:640px){.ov{place-items:center}.modal{border-radius:18px}}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}.stats b{display:block;font-size:22px;color:var(--pri)}
+.bars{display:flex;align-items:flex-end;gap:8px;height:130px}.bars div{flex:1;text-align:center;font-size:11px;color:var(--mute);display:flex;flex-direction:column;justify-content:flex-end;height:100%}
+.bars i{display:block;background:var(--pri);border-radius:6px 6px 0 0;min-height:2px}
+#toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;z-index:30;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+.bn{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px);z-index:5}
+.bn button{flex:1;background:none;border:0;padding:8px 0;font-size:11px;color:var(--mute);position:relative}.bn button span{display:block;font-size:20px}.bn button.on{color:var(--pri);font-weight:700}
+.bn .badge{top:2px;right:calc(50% - 22px)}
+footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}footer button{background:none;border:0;color:var(--mute);text-decoration:underline}
+.sk{height:200px;border-radius:14px;background:var(--line);opacity:.6}
+@media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr)}.bn{display:none}header nav{display:flex}body{padding-bottom:0}.sp{display:none}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body>
+<header>
+ <button class="logo" data-go="home">HLU Dorm Drink<small>Cửa hàng nước ký túc xá Đại học Hạ Long</small></button>
+ <nav id="nav"></nav><span class="sp"></span>
+ <button class="ic" data-go="search" aria-label="Tìm kiếm">🔍</button>
+ <button class="ic" data-go="cart" aria-label="Giỏ hàng">🛒<span class="badge" id="cnt">0</span></button>
+</header>
+<main id="app"></main>
+<footer>Demo cho sinh viên KTX · <button data-go="admin">Dành cho người bán</button></footer>
+<div class="bn" id="bn"></div><div id="toast"></div><div id="modal"></div>
+<script>
+/* ===== DỮ LIỆU MẪU: sửa sản phẩm ở đây (emoji = ảnh tạm, image = link ảnh thật) ===== */
+const CATS=['Nước suối','Nước ngọt','Nước trái cây','Sữa','Cà phê','Trà','Đồ uống khác'];
+const HUE={'Nước suối':195,'Nước ngọt':10,'Nước trái cây':35,'Sữa':50,'Cà phê':25,'Trà':130,'Đồ uống khác':280};
+const STEPS=['Đang xử lý','Đã xác nhận','Đang giao','Đã giao'];
+const SEED=[['Aquafina 500ml',5000,'Nước suối','💧',80,'Nước tinh khiết, mát lạnh.'],['Lavie 500ml',5000,'Nước suối','💧',80,'Nước khoáng thiên nhiên.'],
+['Coca-Cola 390ml',10000,'Nước ngọt','🥤',40,'Vị cola quen thuộc, uống lạnh là đỉnh.'],['Pepsi 390ml',10000,'Nước ngọt','🥤',40,'Sảng khoái, sủi bọt.'],
+['Sting đỏ 330ml',10000,'Nước ngọt','⚡',30,'Nước tăng lực cho đêm ôn thi.'],['C2 trà xanh',10000,'Trà','🍵',35,'Trà xanh chai, vị thanh nhẹ.'],
+['Trà đào',12000,'Trà','🍑',25,'Trà đào mát lạnh, thơm ngọt.'],['Nước cam',12000,'Nước trái cây','🍊',20,'Nước cam ép giàu vitamin C.'],
+['Milo',12000,'Sữa','🥛',30,'Sữa lúa mạch Milo, thơm béo.'],['Cà phê lon',15000,'Cà phê','☕',25,'Cà phê lon tỉnh táo cả buổi học.']]
+.map((a,i)=>({id:i+1,name:a[0],price:a[1],cat:a[2],emoji:a[3],stock:a[4],desc:a[5],image:'',available:true}));
+
+/* ===== LƯU TRỮ: localStorage (chỉ lưu trên trình duyệt này) ===== */
+const K={p:'hlu_products',c:'hlu_cart',o:'hlu_orders'};
+const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const S={products:load(K.p,SEED),cart:load(K.c,{}),orders:load(K.o,[]),view:'home',cat:'Tất cả',q:'',loading:true,tab:'dash',confirm:null,lastOrder:null};
+const $=s=>document.querySelector(s);
+const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>n.toLocaleString('vi-VN')+'đ';
+const inStock=p=>p.available&&p.stock>0;
+const byId=id=>S.products.find(p=>p.id===id);
+const cartItems=()=>Object.entries(S.cart).map(([id,q])=>({p:byId(+id),q})).filter(x=>x.p);
+const cartTotal=()=>cartItems().reduce((s,x)=>s+x.p.price*x.q,0);
+const cartCount=()=>cartItems().reduce((s,x)=>s+x.q,0);
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)}
+const pic=(p,c)=>`<div class="${c}" style="--h:${HUE[p.cat]||180}"><span>${esc(p.emoji||'🥤')}</span>${p.image?`<img src="${esc(p.image)}" alt="" onerror="this.remove()">`:''}</div>`;
+
+/* ===== GIỎ HÀNG ===== */
+function addToCart(id,n=1){const p=byId(id);if(!p||!inStock(p))return toast('Sản phẩm đã hết hàng.');
+ const next=(S.cart[id]||0)+n;if(next>p.stock){return toast('Chỉ còn '+p.stock+' sản phẩm trong kho.')}
+ S.cart[id]=next;save(K.c,S.cart);toast('Đã thêm sản phẩm vào giỏ hàng.');chrome()}
+function setQty(id,q){const p=byId(id);if(q<=0)delete S.cart[id];else if(p&&q<=p.stock)S.cart[id]=q;else return toast('Vượt quá số lượng trong kho.');save(K.c,S.cart);render()}
+
+/* ===== GIAO DIỆN ===== */
+const NAV=[['home','Trang chủ','🏠'],['products','Sản phẩm','🥤'],['orders','Đơn hàng','📦'],['cart','Giỏ hàng','🛒']];
+function chrome(){$('#cnt').textContent=cartCount();$('#cnt').style.display=cartCount()?'grid':'none';
+ $('#nav').innerHTML=NAV.map(n=>`<button class="tab ${S.view===n[0]?'on':''}" data-go="${n[0]}">${n[1]}</button>`).join('');
+ $('#bn').innerHTML=NAV.map(n=>`<button class="${S.view===n[0]?'on':''}" data-go="${n[0]}"><span>${n[2]}</span>${n[1]}</button>`).join('')}
+function card(p){const ok=inStock(p);return `<div class="card">${pic(p,'img').replace('class="img"','class="img" data-open="'+p.id+'"')}
+ <div class="cb"><span class="cat">${esc(p.cat)}</span><b>${esc(p.name)}</b><span class="price">${money(p.price)}</span>
+ <span class="tag ${ok?'ok':'no'}">${ok?'Còn hàng ('+p.stock+')':'Hết hàng'}</span>
+ <button class="btn sm" data-add="${p.id}" ${ok?'':'disabled'}>${ok?'Thêm vào giỏ':'Hết hàng'}</button></div></div>`}
+const list=()=>S.products.filter(p=>(S.cat==='Tất cả'||p.cat===S.cat)&&p.name.toLowerCase().includes(S.q.trim().toLowerCase()));
+const gridHTML=()=>{const l=list();return l.length?l.map(card).join(''):'<div class="empty" style="grid-column:1/-1">Không tìm thấy sản phẩm phù hợp.</div>'};
+function shop(hero){
+ if(S.loading)return '<div class="grid">'+'<div class="sk"></div>'.repeat(4)+'</div>';
+ return (hero?`<section class="hero"><h1>GIẢI KHÁT NGAY TẠI KÝ TÚC XÁ</h1><p>Đặt nước nhanh - Giao tận phòng</p><button class="btn acc" data-go="products">Xem sản phẩm</button><span class="big">🧊</span></section>`:'')+
+ `<h2>${hero?'Đồ uống đang bán':'Sản phẩm'}</h2><input id="q" type="search" placeholder="Tìm nước, ví dụ: Coca" value="${esc(S.q)}" style="margin-bottom:10px">
+ <div class="chips">${['Tất cả',...CATS].map(c=>`<button class="chip ${S.cat===c?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
+ <div class="grid" id="grid">${gridHTML()}</div>`}
+function cartView(){const it=cartItems();if(!it.length)return '<div class="empty">Giỏ hàng của bạn đang trống.<br><br><button class="btn" data-go="products">Xem sản phẩm</button></div>';
+ return `<h2>Giỏ hàng</h2>`+it.map(({p,q})=>`<div class="box row">${pic(p,'th')}<div class="grow"><b>${esc(p.name)}</b><div class="cat">${money(p.price)} × ${q} = <b>${money(p.price*q)}</b></div></div>
+ <div class="qty"><button data-dec="${p.id}" aria-label="Giảm">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Tăng">+</button></div>
+ <button class="btn ghost sm" data-rm="${p.id}" aria-label="Xóa">🗑</button></div>`).join('')+
+ `<div class="box"><div class="sum"><span>Tổng số sản phẩm</span><b>${cartCount()}</b></div><div class="sum t"><span>Tổng tiền</span><span>${money(cartTotal())}</span></div></div>
+ <button class="btn full" data-go="checkout">TIẾN HÀNH ĐẶT HÀNG</button>`}
+function checkoutView(){const it=cartItems();
+ if(S.lastOrder){const o=S.lastOrder;return `<div class="box" style="text-align:center"><div style="font-size:48px">✅</div><h2>Đặt hàng thành công!</h2><p>Mã đơn: <b>${o.id}</b></p><p>Tổng tiền: <b>${money(o.total)}</b></p><p><span class="st">${o.status}</span></p><button class="btn" data-go="orders">Theo dõi đơn hàng</button></div>`}
+ if(!it.length)return '<div class="empty">Giỏ hàng của bạn đang trống.</div>';
+ return `<h2>Đặt hàng</h2><form id="co" class="f box"><label>Họ và tên<input name="name" required placeholder="Nguyễn Văn A"></label>
+ <label>Số điện thoại<input name="phone" required inputmode="tel" placeholder="09xxxxxxxx"></label>
+ <div class="two"><label>Khu KTX<input name="area" required placeholder="Khu A"></label><label>Tòa<input name="building" required placeholder="A1"></label></div>
+ <label>Số phòng<input name="room" required placeholder="A1-305"></label><label>Ghi chú<textarea name="note" rows="2" placeholder="Giao vào buổi tối."></textarea></label>
+ <div class="two"><label>Phương thức nhận<select name="method"><option>Giao tận phòng</option><option>Nhận tại điểm giao hàng</option></select></label>
+ <label>Thanh toán<select name="pay"><option>Tiền mặt khi nhận hàng</option><option>Chuyển khoản</option></select></label></div>
+ <div id="err" style="color:var(--bad)"></div>
+ <div>${it.map(({p,q})=>`<div class="sum"><span>${esc(p.name)} × ${q}</span><span>${money(p.price*q)}</span></div>`).join('')}<div class="sum t"><span>Tổng tiền</span><span>${money(cartTotal())}</span></div></div>
+ <button class="btn full">XÁC NHẬN ĐẶT HÀNG</button></form>`}
+function ordersView(){if(!S.orders.length)return '<div class="empty">Bạn chưa có đơn hàng nào.<br><br><button class="btn" data-go="products">Đặt nước ngay</button></div>';
+ return '<h2>Đơn hàng của tôi</h2>'+S.orders.map(o=>{const i=STEPS.indexOf(o.status);
+ return `<div class="box"><div class="row"><b class="grow">${o.id}</b><span class="st ${o.status==='Đã hủy'?'x':''}">${o.status}</span></div>
+ <div class="cat">${new Date(o.time).toLocaleString('vi-VN')}</div>
+ <div style="margin:8px 0">${o.items.map(x=>esc(x.name)+' × '+x.qty).join('<br>')}</div>
+ <div class="cat">📍 ${esc(o.info.method)}: ${esc(o.info.area)}, tòa ${esc(o.info.building)}, phòng ${esc(o.info.room)}</div><b>${money(o.total)}</b>
+ ${o.status==='Đã hủy'?'':`<div class="tl">${STEPS.map((s,k)=>`<div class="${k<=i?'d':''}">${s}</div>`).join('')}</div>`}</div>`}).join('')}
+
+/* ===== TRANG QUẢN TRỊ (demo: chưa có đăng nhập) ===== */
+const live=()=>S.orders.filter(o=>o.status!=='Đã hủy');
+function adminView(){
+ const tabs=[['dash','Tổng quan'],['prod','Sản phẩm'],['ord','Đơn hàng']];
+ let body='';
+ if(S.tab==='dash'){const today=live().filter(o=>new Date(o.time).toDateString()===new Date().toDateString());
+  const days=[...Array(7)].map((_,k)=>{const d=new Date();d.setDate(d.getDate()-6+k);return{l:d.getDate()+'/'+(d.getMonth()+1),v:live().filter(o=>new Date(o.time).toDateString()===d.toDateString()).reduce((s,o)=>s+o.total,0)}});
+  const mx=Math.max(1,...days.map(d=>d.v));const sold={};live().forEach(o=>o.items.forEach(x=>sold[x.name]=(sold[x.name]||0)+x.qty));
+  const top=Object.entries(sold).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  body=`<div class="stats"><div class="box"><b>${S.orders.length}</b>Tổng đơn hàng</div><div class="box"><b>${today.length}</b>Đơn hôm nay</div>
+  <div class="box"><b>${money(today.reduce((s,o)=>s+o.total,0))}</b>Doanh thu hôm nay</div><div class="box"><b>${S.products.length}</b>Số sản phẩm</div></div>
+  <div class="box"><b>Doanh thu 7 ngày</b><div class="bars" style="margin-top:10px">${days.map(d=>`<div title="${money(d.v)}"><i style="height:${d.v/mx*100}%"></i>${d.l}</div>`).join('')}</div></div>
+  <div class="box"><b>Sản phẩm bán chạy</b>${top.length?top.map(t=>`<div class="sum"><span>${esc(t[0])}</span><b>${t[1]}</b></div>`).join(''):'<div class="cat">Chưa có dữ liệu bán hàng.</div>'}</div>`}
+ if(S.tab==='prod')body=`<button class="btn" data-edit="0" style="margin-bottom:10px">+ Thêm sản phẩm</button>`+S.products.map(p=>`<div class="box row">${pic(p,'th')}<div class="grow"><b>${esc(p.name)}</b><div class="cat">${money(p.price)} · Kho: ${p.stock} · ${inStock(p)?'Còn hàng':'Hết hàng'}</div></div>
+  <button class="btn ghost sm" data-edit="${p.id}">Sửa</button><button class="btn ${S.confirm===p.id?'bad':'ghost'} sm" data-del="${p.id}">${S.confirm===p.id?'Bấm lại để xóa':'Xóa'}</button></div>`).join('');
+ if(S.tab==='ord')body=S.orders.length?S.orders.map(o=>{const i=STEPS.indexOf(o.status),nx=STEPS[i+1];
+  return `<div class="box"><div class="row"><b class="grow">${o.id}</b><span class="st ${o.status==='Đã hủy'?'x':''}">${o.status}</span></div>
+  <div class="cat">${esc(o.info.name)} · ${esc(o.info.phone)} · ${esc(o.info.area)}-${esc(o.info.room)} · ${esc(o.info.pay)}</div>
+  <div style="margin:6px 0">${o.items.map(x=>esc(x.name)+' × '+x.qty).join(', ')}</div>${o.info.note?`<div class="cat">Ghi chú: ${esc(o.info.note)}</div>`:''}<b>${money(o.total)}</b>
+  <div class="row" style="margin-top:8px;flex-wrap:wrap">${nx&&o.status!=='Đã hủy'?`<button class="btn sm" data-st="${o.id}|${nx}">${nx==='Đã xác nhận'?'Xác nhận đơn':'Chuyển sang '+nx}</button>`:''}
+  ${o.status!=='Đã hủy'&&o.status!=='Đã giao'?`<button class="btn bad sm" data-st="${o.id}|Đã hủy">Hủy đơn</button>`:''}</div></div>`}).join(''):'<div class="empty">Chưa có đơn hàng nào.</div>';
+ return `<h2>Quản trị</h2><div class="cat" style="margin-bottom:8px">Bản demo: trang này chưa có mật khẩu, ai cũng mở được.</div>
+ <div class="chips">${tabs.map(t=>`<button class="chip ${S.tab===t[0]?'on':''}" data-tab="${t[0]}">${t[1]}</button>`).join('')}</div>${body}`}
+function productForm(id){const p=id?byId(id):{name:'',price:10000,cat:CATS[0],emoji:'🥤',stock:20,desc:'',image:'',available:true};
+ $('#modal').innerHTML=`<div class="ov" data-close><div class="modal"><form id="pf" class="f"><h2>${id?'Sửa':'Thêm'} sản phẩm</h2><input type="hidden" name="id" value="${id}">
+ <label>Tên<input name="name" required value="${esc(p.name)}"></label><div class="two"><label>Giá (VNĐ)<input name="price" type="number" min="0" step="500" required value="${p.price}"></label>
+ <label>Tồn kho<input name="stock" type="number" min="0" required value="${p.stock}"></label></div>
+ <label>Danh mục<select name="cat">${CATS.map(c=>`<option ${c===p.cat?'selected':''}>${c}</option>`).join('')}</select></label>
+ <div class="two"><label>Emoji ảnh tạm<input name="emoji" value="${esc(p.emoji)}"></label><label>Link ảnh thật<input name="image" value="${esc(p.image)}" placeholder="images/coca.jpg"></label></div>
+ <label>Mô tả<textarea name="desc" rows="2">${esc(p.desc)}</textarea></label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="available" style="width:auto" ${p.available?'checked':''}> Đang bán (còn hàng)</label>
+ <button class="btn full">Lưu sản phẩm</button><button type="button" class="btn ghost" data-close>Hủy</button></form></div></div>`}
+function detail(id){const p=byId(id);if(!p)return;const ok=inStock(p);let q=1;
+ $('#modal').innerHTML=`<div class="ov" data-close><div class="modal">${pic(p,'img').replace('class="img"','class="img" style="border-radius:12px;font-size:80px;--h:'+(HUE[p.cat]||180)+'"')}
+ <h2 style="margin-top:12px">${esc(p.name)}</h2><div class="price" style="font-size:20px">${money(p.price)}</div><div class="cat">${esc(p.cat)} · <span class="tag ${ok?'ok':'no'}">${ok?'Còn '+p.stock:'Hết hàng'}</span></div>
+ <p>${esc(p.desc)}</p><div class="row"><div class="qty"><button id="qm" aria-label="Giảm">−</button><span id="qv">1</span><button id="qp" aria-label="Tăng">+</button></div>
+ <button class="btn grow" id="qa" ${ok?'':'disabled'}>Thêm vào giỏ hàng</button></div><button class="btn ghost full" style="margin-top:8px" data-close>Đóng</button></div></div>`;
+ const set=v=>{q=Math.max(1,Math.min(p.stock||1,v));$('#qv').textContent=q};
+ $('#qm').onclick=()=>set(q-1);$('#qp').onclick=()=>set(q+1);$('#qa').onclick=()=>{addToCart(id,q);$('#modal').innerHTML=''}}
+
+const VIEWS={home:()=>shop(true),products:()=>shop(false),cart:cartView,checkout:checkoutView,orders:ordersView,admin:adminView};
+function render(){if(!VIEWS[S.view])S.view='home';$('#app').innerHTML=VIEWS[S.view]();chrome()}
+function go(v){if(v==='search'){S.view='products';location.hash='products';render();const q=$('#q');q&&q.focus();return}
+ if(v!=='checkout')S.lastOrder=null;S.view=v;location.hash=v;render();scrollTo(0,0)}
+addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(v&&v!==S.view&&VIEWS[v]){S.view=v;render()}});
+
+/* ===== SỰ KIỆN (dùng một bộ lắng nghe chung) ===== */
+document.addEventListener('click',e=>{const t=e.target,g=a=>t.closest('['+a+']');let x;
+ if(t.matches('[data-close]')&&t.closest('.ov')===t||t.matches('button[data-close]')){$('#modal').innerHTML='';return}
+ if(x=g('data-go'))return go(x.dataset.go);
+ if(x=g('data-add'))return addToCart(+x.dataset.add);
+ if(x=g('data-open'))return detail(+x.dataset.open);
+ if(x=g('data-cat')){S.cat=x.dataset.cat;return render()}
+ if(x=g('data-inc'))return setQty(+x.dataset.inc,(S.cart[x.dataset.inc]||0)+1);
+ if(x=g('data-dec'))return setQty(+x.dataset.dec,(S.cart[x.dataset.dec]||0)-1);
+ if(x=g('data-rm'))return setQty(+x.dataset.rm,0);
+ if(x=g('data-tab')){S.tab=x.dataset.tab;return render()}
+ if(x=g('data-edit'))return productForm(+x.dataset.edit);
+ if(x=g('data-del')){const id=+x.dataset.del;if(S.confirm===id){S.products=S.products.filter(p=>p.id!==id);delete S.cart[id];save(K.p,S.products);save(K.c,S.cart);S.confirm=null;toast('Đã xóa sản phẩm.')}else S.confirm=id;return render()}
+ if(x=g('data-st')){const[id,st]=x.dataset.st.split('|');const o=S.orders.find(o=>o.id===id);
+  if(st==='Đã hủy'&&o.status!=='Đã hủy')o.items.forEach(i=>{const p=byId(i.id);if(p)p.stock+=i.qty});/* hủy đơn thì hoàn lại kho */
+  o.status=st;save(K.o,S.orders);save(K.p,S.products);toast('Đã cập nhật: '+st);return render()}});
+document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;$('#grid').innerHTML=gridHTML()}});
+document.addEventListener('submit',e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));
+ if(e.target.id==='co'){if(!/^0\d{9}$/.test(f.phone.trim()))return $('#err').textContent='Số điện thoại cần 10 chữ số, bắt đầu bằng 0.';
+  const it=cartItems();if(it.some(({p,q})=>q>p.stock||!inStock(p)))return $('#err').textContent='Có sản phẩm đã hết hoặc không đủ hàng. Vui lòng kiểm tra giỏ.';
+  const o={id:'HLU'+Date.now().toString().slice(-6),time:Date.now(),items:it.map(({p,q})=>({id:p.id,name:p.name,price:p.price,qty:q})),total:cartTotal(),info:f,status:'Đang xử lý'};
+  it.forEach(({p,q})=>p.stock-=q);S.orders.unshift(o);S.cart={};S.lastOrder=o;save(K.o,S.orders);save(K.p,S.products);save(K.c,S.cart);render()}
+ if(e.target.id==='pf'){const id=+f.id,d={name:f.name.trim(),price:+f.price,stock:+f.stock,cat:f.cat,emoji:f.emoji||'🥤',image:f.image.trim(),desc:f.desc,available:!!f.available};
+  if(id)Object.assign(byId(id),d);else S.products.push({id:Math.max(0,...S.products.map(p=>p.id))+1,...d});
+  save(K.p,S.products);$('#modal').innerHTML='';toast('Đã lưu sản phẩm.');render()}});
+
+S.view=location.hash.slice(1)||'home';render();
+setTimeout(()=>{S.loading=false;render()},350); /* giả lập tải dữ liệu; khi có API thật, thay bằng fetch */
+</script></body></html>
