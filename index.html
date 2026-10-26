@@ -134,10 +134,10 @@ const SEED=[['Aquafina 500ml',5000,'Nước suối','💧',80,'Nước tinh khi�
    Giỏ hàng vẫn lưu trên trình duyệt.
    Sản phẩm + đơn hàng dùng Supabase khi đã cấu hình.
 */
-const K={c:'hlu_cart',o:'hlu_cart_off',m:'hlu_my_orders'}; // giỏ hàng, sản phẩm bỏ tích, mã đơn đã đặt trên máy này
+const K={c:'hlu_cart',o:'hlu_cart_off',m:'hlu_my_tokens'}; // giỏ hàng, sản phẩm bỏ tích, mã đơn đã đặt trên máy này
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-const S={products:SEED,cart:load(K.c,{}),off:load(K.o,{}),orders:[],mine:[],myIds:(x=>Array.isArray(x)?x:[])(load(K.m,[])),ask:null,busy:false,view:'home',cat:'Tất cả',q:'',loading:true,tab:'dash',confirm:null,lastOrder:null};
+const S={products:SEED,cart:load(K.c,{}),off:load(K.o,{}),orders:[],mine:[],myTokens:(x=>Array.isArray(x)?x.filter(t=>/^[0-9a-f-]{36}$/i.test(t)):[])(load(K.m,[])),ask:null,user:null,busy:false,view:'home',cat:'Tất cả',q:'',loading:true,tab:'dash',confirm:null,lastOrder:null};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>n.toLocaleString('vi-VN')+'đ';
@@ -167,7 +167,7 @@ function productFromDb(p){
 }
 function orderFromDb(o){
   return {
-    id:'HLU'+String(o.id).padStart(6,'0'), dbId:o.id,
+    id:'HLU'+String(o.id).padStart(6,'0'), dbId:o.id, token:o.token,
     time:new Date(o.created_at).getTime(),
     items:parseItems(o.items),
     total:Number(o.total)||0, status:o.status||'Đang xử lý',
@@ -193,16 +193,7 @@ async function loadRemoteData(){
   try{
     const {data:products,error:pe}=await sb.from('products').select('*').order('id');
     if(pe) throw pe;
-    if(products && products.length) S.products=products.map(productFromDb);
-    else{
-      const seedRows=SEED.map(p=>({
-        name:p.name,price:p.price,category:p.cat,emoji:p.emoji,
-        stock:p.stock,description:p.desc,image:p.image,available:p.available
-      }));
-      const {data:inserted,error:ie}=await sb.from('products').insert(seedRows).select('*');
-      if(ie) throw ie;
-      if(inserted) S.products=inserted.map(productFromDb);
-    }
+    S.products=(products||[]).map(productFromDb);
   }catch(err){
     console.error('Supabase:',errText(err));
     toast('Lỗi máy chủ'+(err&&err.code?' ('+err.code+')':'')+'. Mở Console (F12) để xem chi tiết.');
@@ -214,10 +205,10 @@ async function loadRemoteData(){
 /* Đơn của MÁY NÀY: chỉ lấy các đơn có mã đã lưu lúc khách đặt hàng */
 async function refreshMine(){
   if(!sb)return;
-  if(!S.myIds.length){S.mine=[];return}
-  const {data,error}=await sb.from('orders').select('*').in('id',S.myIds).order('created_at',{ascending:false});
+  if(!S.myTokens.length){S.mine=[];return}
+  const {data,error}=await sb.rpc('my_orders',{p_tokens:S.myTokens});
   if(error)throw error;
-  S.mine=data.map(orderFromDb);
+  S.mine=(data||[]).map(orderFromDb);
 }
 /* Đơn của TẤT CẢ khách: chỉ dùng cho trang quản trị */
 async function loadAllOrders(){
@@ -231,20 +222,18 @@ function enter(v){
   if(!sb)return;
   const done=()=>{if(S.view===v)render()},fail=e=>{console.error(errText(e));toast('Không tải được đơn hàng.')};
   if(v==='orders'){S.busy=true;render();refreshMine().catch(fail).finally(()=>{S.busy=false;done()})}
-  if(v==='admin')loadAllOrders().catch(fail).finally(done);
+  if(v==='admin'&&S.user)loadAllOrders().catch(fail).finally(done);
 }
 /* Tự cập nhật trạng thái đơn mỗi 30 giây khi khách đang xem trang Đơn hàng */
 setInterval(()=>{if(sb&&S.view==='orders'&&!document.hidden)refreshMine().then(()=>S.view==='orders'&&render()).catch(()=>{})},30000);
 async function insertOrderRemote(o){
-  const {data,error}=await sb.from('orders').insert({
-    customer_name:o.info.name, phone:o.info.phone,
-    dorm_area:o.info.area, building:o.info.building, room:o.info.room,
-    note:o.info.note||'', delivery_method:o.info.method,
-    payment_method:o.info.pay, total:o.total, status:o.status,
-    items:o.items.map(i=>`${i.name} (${i.qty})`).join(', ') // dạng dễ đọc: Tên (số lượng), Tên (số lượng)
-  }).select('*').single();
+  const {data,error}=await sb.rpc('create_order',{
+    p_name:o.info.name,p_phone:o.info.phone,p_area:o.info.area,p_building:o.info.building,p_room:o.info.room,
+    p_note:o.info.note||'',p_method:o.info.method,p_pay:o.info.pay,
+    p_items:o.items.map(i=>({id:i.id,qty:i.qty})) // giá, tổng tiền và trừ kho do máy chủ tự làm
+  });
   if(error) throw error;
-  return orderFromDb(data); // có mã đơn và dbId thật từ database
+  return orderFromDb(Array.isArray(data)?data[0]:data);
 }
 /* Lấy tồn kho mới nhất từ database trước khi đặt hàng */
 async function syncStock(ids){
@@ -254,48 +243,50 @@ async function syncStock(ids){
   const got=new Set(data.map(r=>r.id));
   ids.forEach(id=>{if(!got.has(id)){const p=byId(id);if(p)p.available=false}}); // sản phẩm đã bị xóa
 }
-/* Cộng/trừ tồn kho: chỉ ghi duy nhất cột stock nên không ghi đè tên/giá khi cửa hàng đang sửa */
-async function adjustStock(id,delta){
-  const p=byId(id);if(!p)return;
-  if(!sb){p.stock=Math.max(0,p.stock+delta);return}
-  const {data,error}=await sb.from('products').select('stock').eq('id',id).single();
+/* Có Supabase: tồn kho do MÁY CHỦ tự trừ/cộng (create_order, cancel_my_order, admin_set_status).
+   Hai hàm adjustStock và restock chỉ dùng cho chế độ demo không có Supabase. */
+function adjustStock(id,delta){const p=byId(id);if(p)p.stock=Math.max(0,p.stock+delta)}
+function restock(items){items.forEach(it=>{const p=it.id?byId(it.id):S.products.find(x=>x.name.trim()===String(it.name).trim());if(p)adjustStock(p.id,Number(it.qty)||0)})}
+async function loadProducts(){
+  const {data,error}=await sb.from('products').select('*').order('id');
   if(error)throw error;
-  const next=Math.max(0,(Number(data.stock)||0)+delta);
-  const {error:ue}=await sb.from('products').update({stock:next}).eq('id',id);
-  if(ue)throw ue;
-  p.stock=next;
+  S.products=data.map(productFromDb);
 }
-async function restock(items){
-  for(const it of items){
-    const p=it.id?byId(it.id):S.products.find(x=>x.name.trim()===String(it.name).trim()); // cột items chỉ có tên nên tìm sản phẩm theo tên
-    if(!p)continue;
-    try{await adjustStock(p.id,Number(it.qty)||0)}catch(err){console.error('Hoàn kho lỗi:',errText(err))}
-  }
-}
-/* Đổi trạng thái đơn. onlyFrom = chỉ đổi khi đơn đang ở trạng thái này (tránh ghi đè khi khách và cửa hàng cùng thao tác).
-   Trả về false nếu đơn đã bị đổi trước đó. Hủy đơn thì hoàn lại kho. */
+/* Đổi trạng thái đơn (trang quản trị). Trả về false nếu đơn đã bị đổi trước đó. */
 async function setOrderStatus(o,st,onlyFrom){
   if(onlyFrom&&o.status!==onlyFrom)return false;
   if(sb){
-    let q=sb.from('orders').update({status:st}).eq('id',o.dbId);
-    if(onlyFrom)q=q.eq('status',onlyFrom);
-    const {data,error}=await q.select('id');
+    const {data,error}=await sb.rpc('admin_set_status',{p_id:o.dbId,p_from:o.status,p_status:st});
     if(error)throw error;
-    if(!data||!data.length)return false;
+    if(!data)return false;
+    o.status=st;if(st==='Đã hủy')await loadProducts();
+    return true;
   }
-  const was=o.status;o.status=st;
-  if(st==='Đã hủy'&&was!=='Đã hủy')await restock(o.items);
+  const was=o.status;o.status=st;if(st==='Đã hủy'&&was!=='Đã hủy')restock(o.items);
   return true;
 }
 /* Khách tự hủy đơn: chỉ được khi cửa hàng chưa xác nhận */
 async function cancelMine(key){
-  const o=S.mine.find(o=>orderKey(o)===key);if(!o)return;
+  const o=S.mine.find(o=>orderKey(o)===key);if(!o||o.status!=='Đang xử lý')return;
   try{
-    if(await setOrderStatus(o,'Đã hủy','Đang xử lý'))toast('Đã hủy đơn '+o.id+'.');
+    let done=true;
+    if(sb){const {data,error}=await sb.rpc('cancel_my_order',{p_token:o.token});if(error)throw error;done=!!data;if(done)await loadProducts()}
+    else{o.status='Đã hủy';restock(o.items)}
+    if(done)toast('Đã hủy đơn '+o.id+'.');
     else{toast('Cửa hàng đã xác nhận đơn nên không thể hủy.');await refreshMine()}
   }catch(err){console.error(errText(err));toast('Không hủy được đơn. Vui lòng thử lại.')}
   render();
 }
+/* ===== ĐĂNG NHẬP QUẢN TRỊ ===== */
+async function initAuth(){
+  if(!sb)return;
+  const {data}=await sb.auth.getSession();
+  S.user=data.session?data.session.user:null;
+  sb.auth.onAuthStateChange((_ev,s)=>{S.user=s?s.user:null});
+}
+const loginView=()=>`<h2>Đăng nhập quản trị</h2><form id="login" class="f box"><label>Email<input name="email" type="email" required autocomplete="username"></label>
+ <label>Mật khẩu<input name="password" type="password" required autocomplete="current-password"></label>
+ <div id="lerr" style="color:var(--bad)" role="alert"></div><button class="btn full">Đăng nhập</button></form>`;
 async function insertProductRemote(p){
   const {data,error}=await sb.from('products').insert({
     name:p.name,price:p.price,category:p.cat,emoji:p.emoji,stock:p.stock,
@@ -400,6 +391,7 @@ function ordersView(){
 /* ===== TRANG QUẢN TRỊ (demo: chưa có đăng nhập) ===== */
 const live=()=>S.orders.filter(o=>o.status!=='Đã hủy');
 function adminView(){
+ if(sb&&!S.user)return loginView();
  const tabs=[['dash','Tổng quan'],['prod','Sản phẩm'],['ord','Đơn hàng']];
  let body='';
  if(S.tab==='dash'){const today=live().filter(o=>new Date(o.time).toDateString()===new Date().toDateString());
@@ -418,7 +410,7 @@ function adminView(){
   <div style="margin:6px 0">${o.items.map(x=>esc(x.name)+' × '+x.qty).join(', ')}</div>${o.info.note?`<div class="cat">Ghi chú: ${esc(o.info.note)}</div>`:''}<b>${money(o.total)}</b>
   <div class="row" style="margin-top:8px;flex-wrap:wrap">${nx&&o.status!=='Đã hủy'?`<button class="btn sm" data-st="${o.id}|${nx}">${nx==='Đã xác nhận'?'Xác nhận đơn':'Chuyển sang '+nx}</button>`:''}
   ${o.status!=='Đã hủy'&&o.status!=='Đã giao'?`<button class="btn bad sm" data-st="${o.id}|Đã hủy">Hủy đơn</button>`:''}</div></div>`}).join(''):'<div class="empty">Chưa có đơn hàng nào.</div>';
- return `<div class="row"><h2 class="grow">Quản trị</h2><button class="btn ghost sm" data-reload="all">↻ Tải lại</button></div><div class="cat" style="margin-bottom:8px">Bản demo: trang này chưa có mật khẩu, ai cũng mở được.</div>
+ return `<div class="row"><h2 class="grow">Quản trị</h2><button class="btn ghost sm" data-reload="all">↻ Tải lại</button>${sb?'<button class="btn ghost sm" data-logout>Đăng xuất</button>':''}</div><div class="cat" style="margin-bottom:8px">${sb?'Đã đăng nhập: '+esc(S.user.email):'Bản demo: trang này chưa có mật khẩu, ai cũng mở được.'}</div>
  <div class="chips">${tabs.map(t=>`<button class="chip ${S.tab===t[0]?'on':''}" data-tab="${t[0]}">${t[1]}</button>`).join('')}</div>${body}`}
 function productForm(id){const p=id?byId(id):{name:'',price:10000,cat:CATS[0],emoji:'🥤',stock:20,desc:'',image:'',available:true};
  $('#modal').innerHTML=`<div class="ov" data-close><div class="modal"><form id="pf" class="f"><h2>${id?'Sửa':'Thêm'} sản phẩm</h2><input type="hidden" name="id" value="${id}">
@@ -467,6 +459,7 @@ document.addEventListener('click',e=>{const t=e.target,g=a=>t.closest('['+a+']')
  }else S.confirm=id;return render()}
  if(x=g('data-cancel')){const key=x.dataset.cancel;if(S.ask!==key){S.ask=key;return render()}S.ask=null;return cancelMine(key)} // bấm 2 lần để hủy
  if(g('data-cancel-no')){S.ask=null;return render()}
+ if(g('data-logout')){sb.auth.signOut().finally(()=>{S.user=null;S.orders=[];render()});return}
  if(x=g('data-reload')){const all=x.dataset.reload==='all';(all?loadAllOrders():refreshMine()).then(()=>{toast('Đã cập nhật.');render()}).catch(err=>{console.error(errText(err));toast('Không tải được đơn hàng.')});return}
  if(x=g('data-st')){const[id,st]=x.dataset.st.split('|');const o=S.orders.find(o=>o.id===id);if(!o)return;
    (async()=>{
@@ -514,14 +507,27 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=Object.fromEnt
        if(sb)await syncStock(it.map(x=>x.p.id));
        if(it.some(({p,q})=>q>p.stock||!inStock(p))){fail('Có sản phẩm đã hết hoặc không đủ hàng. Vui lòng kiểm tra lại giỏ hàng.');btn.disabled=false;return}
        order={id:'',time:Date.now(),items:it.map(({p,q})=>({id:p.id,name:p.name,price:p.price,qty:q})),total:selTotal(),info:f,status:'Đang xử lý'};
-       if(sb){const items=order.items;order=await insertOrderRemote(order);order.items=items;S.myIds.push(order.dbId);save(K.m,S.myIds)}
+       if(sb){const items=order.items;order=await insertOrderRemote(order);order.items=items;S.myTokens=[order.token,...S.myTokens].slice(0,50);save(K.m,S.myTokens)}
        else order.id='HLU'+Date.now().toString().slice(-6);
-     }catch(err){console.error(errText(err));fail('Không thể gửi đơn hàng lên máy chủ. Vui lòng thử lại.');btn.disabled=false;return}
+     }catch(err){console.error(errText(err));fail(err&&err.code==='P0001'?err.message:'Không thể gửi đơn hàng lên máy chủ. Vui lòng thử lại.');btn.disabled=false;return}
      /* Từ đây đơn đã được tạo: lỗi trừ kho chỉ ghi log, không bắt khách đặt lại */
-     for(const {p,q} of it){try{await adjustStock(p.id,-q)}catch(err){console.error('Trừ kho lỗi:',errText(err))}}
+     if(sb){try{await loadProducts()}catch(err){console.error(errText(err))}}else it.forEach(({p,q})=>adjustStock(p.id,-q)); // có Supabase: máy chủ đã tự trừ kho
      S.mine.unshift(order);if(!sb)S.orders.unshift(order);
      it.forEach(({p})=>{delete S.cart[p.id];delete S.off[p.id]}); // chỉ xóa món đã đặt, món không tích vẫn ở trong giỏ
      save(K.c,S.cart);save(K.o,S.off);S.lastOrder=order;render();
+   })();
+ }
+ if(e.target.id==='login'){
+   const btn=e.target.querySelector('.btn.full'),m=$('#lerr');btn.disabled=true;m.textContent='';
+   (async()=>{
+     try{
+       const {data,error}=await sb.auth.signInWithPassword({email:f.email.trim(),password:f.password});
+       if(error)throw error;
+       const {data:isAdmin,error:ae}=await sb.rpc('is_admin');
+       if(ae)throw ae;
+       if(!isAdmin){await sb.auth.signOut();S.user=null;m.textContent='Tài khoản này không có quyền quản trị.';btn.disabled=false;return}
+       S.user=data.user;await loadAllOrders();render();
+     }catch(err){console.error(errText(err));m.textContent='Email hoặc mật khẩu chưa đúng.';btn.disabled=false}
    })();
  }
  if(e.target.id==='pf'){
@@ -543,5 +549,5 @@ document.addEventListener('submit',e=>{e.preventDefault();const f=Object.fromEnt
 
 S.view=location.hash.slice(1)||'home';render();
 loadRemoteData();
-enter(S.view);
+initAuth().finally(()=>enter(S.view));
 </script></body></html>
