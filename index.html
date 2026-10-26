@@ -57,6 +57,11 @@ input,select,textarea{width:100%;background:var(--card);border:1px solid var(--l
 .tl div::before{content:"";display:block;width:14px;height:14px;border-radius:50%;background:var(--line);margin:0 auto 4px;position:relative;z-index:1}
 .tl div::after{content:"";position:absolute;top:6px;left:-50%;width:100%;height:2px;background:var(--line)}.tl div:first-child::after{display:none}
 .tl .d{color:var(--ink)}.tl .d::before,.tl .d::after{background:var(--pri)}
+.tl .now{font-weight:700;color:var(--pri)}.tl .now::before{box-shadow:0 0 0 4px color-mix(in srgb,var(--pri) 25%,transparent)}
+.hint{background:color-mix(in srgb,var(--pri) 10%,transparent);border-radius:10px;padding:8px 10px;margin:8px 0;font-size:13px}.hint.x{background:color-mix(in srgb,var(--bad) 12%,transparent)}
+.pick{width:22px;height:22px;padding:0;accent-color:var(--pri);flex:none}.row.off{opacity:.6}
+.ac{position:relative}.acl{position:absolute;left:0;right:0;top:100%;z-index:6;max-height:190px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:10px;margin-top:2px}
+.acl button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px}.acl button:hover,.acl button:focus-visible{background:color-mix(in srgb,var(--pri) 12%,transparent)}
 .st{font-weight:700;font-size:12px;padding:3px 10px;border-radius:99px;background:var(--acc);color:#12343b}.st.x{background:var(--bad);color:#fff}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:20;display:grid;place-items:end center}
 .modal{background:var(--card);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:18px 18px 0 0;padding:16px}
@@ -84,11 +89,40 @@ footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}footer bu
 <main id="app"></main>
 <footer>Demo cho sinh viên KTX · <button data-go="admin">Dành cho người bán</button></footer>
 <div class="bn" id="bn"></div><div id="toast"></div><div id="modal"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+/* ===== SUPABASE =====
+   Điền Project URL và Publishable key của bạn vào 2 dòng dưới.
+   KHÔNG dùng Secret key trong file này.
+*/
+const SUPABASE_URL = 'https://idszlkwsrovlwvptgcky.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_YR5eRlbq9QVWGSSpEExmqA_ND5bPfU_';
+const supabaseEnabled =
+  SUPABASE_URL.startsWith('https://') &&
+    !SUPABASE_URL.includes('YOUR_SUPABASE_URL') &&
+  SUPABASE_PUBLISHABLE_KEY.startsWith('sb_') &&
+    !SUPABASE_PUBLISHABLE_KEY.includes('YOUR_SUPABASE_PUBLISHABLE_KEY');
+
+/* Khung xem trước (iframe) không gửi được đối tượng Headers nên báo DataCloneError.
+   Đổi Headers thành object thường trước khi gọi fetch; ở trang thật việc này vô hại. */
+const plainFetch=(url,opt={})=>{const o={...opt};if(o.headers&&typeof o.headers.entries==='function')o.headers=Object.fromEntries(o.headers.entries());return fetch(url,o)};
+const sb = supabaseEnabled
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {global:{fetch:plainFetch}})
+  : null;
+
 /* ===== DỮ LIỆU MẪU: sửa sản phẩm ở đây (emoji = ảnh tạm, image = link ảnh thật) ===== */
 const CATS=['Nước suối','Nước ngọt','Nước trái cây','Sữa','Cà phê','Trà','Đồ uống khác'];
 const HUE={'Nước suối':195,'Nước ngọt':10,'Nước trái cây':35,'Sữa':50,'Cà phê':25,'Trà':130,'Đồ uống khác':280};
 const STEPS=['Đang xử lý','Đã xác nhận','Đang giao','Đã giao'];
+/* Lời giải thích từng trạng thái cho khách (chỉ để hiển thị, KHÔNG lưu vào database) */
+const HELP={'Đang xử lý':'Cửa hàng đã nhận đơn và sẽ xác nhận sớm. Bạn vẫn có thể hủy đơn ở bước này.','Đã xác nhận':'Cửa hàng đã xác nhận và đang chuẩn bị nước cho bạn.','Đang giao':'Nước đang được mang đến cho bạn. Hãy để ý điện thoại nhé.','Đã giao':'Đơn đã hoàn tất. Cảm ơn bạn!','Đã hủy':'Đơn này đã được hủy.'};
+/* ===== KHU / TÒA / PHÒNG =====
+   Mỗi khu có một tòa cùng tên. Số phòng do khách tự nhập: 5 tầng, mỗi tầng 12 phòng (101-112, 201-212, ... 501-512). */
+const DORM={'Khu S1':['S1'],'Khu S2':['S2'],'Khu S3':['S3'],'Khu S4':['S4']};
+const FLOORS=5,PER_FLOOR=12;
+const ROOMS=[];for(let f=1;f<=FLOORS;f++)for(let n=1;n<=PER_FLOOR;n++)ROOMS.push(f+String(n).padStart(2,'0'));
+const buildingsOf=a=>Array.isArray(DORM[a])?DORM[a]:[];
+const validRoom=r=>ROOMS.includes(r);
 const SEED=[['Aquafina 500ml',5000,'Nước suối','💧',80,'Nước tinh khiết, mát lạnh.'],['Lavie 500ml',5000,'Nước suối','💧',80,'Nước khoáng thiên nhiên.'],
 ['Coca-Cola 390ml',10000,'Nước ngọt','🥤',40,'Vị cola quen thuộc, uống lạnh là đỉnh.'],['Pepsi 390ml',10000,'Nước ngọt','🥤',40,'Sảng khoái, sủi bọt.'],
 ['Sting đỏ 330ml',10000,'Nước ngọt','⚡',30,'Nước tăng lực cho đêm ôn thi.'],['C2 trà xanh',10000,'Trà','🍵',35,'Trà xanh chai, vị thanh nhẹ.'],
@@ -96,27 +130,214 @@ const SEED=[['Aquafina 500ml',5000,'Nước suối','💧',80,'Nước tinh khi�
 ['Milo',12000,'Sữa','🥛',30,'Sữa lúa mạch Milo, thơm béo.'],['Cà phê lon',15000,'Cà phê','☕',25,'Cà phê lon tỉnh táo cả buổi học.']]
 .map((a,i)=>({id:i+1,name:a[0],price:a[1],cat:a[2],emoji:a[3],stock:a[4],desc:a[5],image:'',available:true}));
 
-/* ===== LƯU TRỮ: localStorage (chỉ lưu trên trình duyệt này) ===== */
-const K={p:'hlu_products',c:'hlu_cart',o:'hlu_orders'};
+/* ===== LƯU TRỮ =====
+   Giỏ hàng vẫn lưu trên trình duyệt.
+   Sản phẩm + đơn hàng dùng Supabase khi đã cấu hình.
+*/
+const K={c:'hlu_cart',o:'hlu_cart_off',m:'hlu_my_orders'}; // giỏ hàng, sản phẩm bỏ tích, mã đơn đã đặt trên máy này
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-const S={products:load(K.p,SEED),cart:load(K.c,{}),orders:load(K.o,[]),view:'home',cat:'Tất cả',q:'',loading:true,tab:'dash',confirm:null,lastOrder:null};
+const S={products:SEED,cart:load(K.c,{}),off:load(K.o,{}),orders:[],mine:[],myIds:(x=>Array.isArray(x)?x:[])(load(K.m,[])),ask:null,busy:false,view:'home',cat:'Tất cả',q:'',loading:true,tab:'dash',confirm:null,lastOrder:null};
 const $=s=>document.querySelector(s);
 const esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>n.toLocaleString('vi-VN')+'đ';
 const inStock=p=>p.available&&p.stock>0;
 const byId=id=>S.products.find(p=>p.id===id);
 const cartItems=()=>Object.entries(S.cart).map(([id,q])=>({p:byId(+id),q})).filter(x=>x.p);
-const cartTotal=()=>cartItems().reduce((s,x)=>s+x.p.price*x.q,0);
 const cartCount=()=>cartItems().reduce((s,x)=>s+x.q,0);
+/* Sản phẩm được tích ☑ để mua (mặc định là tích; sản phẩm hết hàng thì không đặt được) */
+const isSel=id=>!S.off[id];
+const selItems=()=>cartItems().filter(({p})=>isSel(p.id)&&inStock(p));
+const selCount=()=>selItems().reduce((s,x)=>s+x.q,0);
+const selTotal=()=>selItems().reduce((s,x)=>s+x.p.price*x.q,0);
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),1800)}
 const pic=(p,c)=>`<div class="${c}" style="--h:${HUE[p.cat]||180}"><span>${esc(p.emoji||'🥤')}</span>${p.image?`<img src="${esc(p.image)}" alt="" onerror="this.remove()">`:''}</div>`;
+
+
+/* ===== SUPABASE DATA ===== */
+/* Lỗi của Supabase là object nên in ra thành "[object Object]"; hàm này đổi thành chữ dễ đọc (mã lỗi + nội dung) */
+const errText=e=>e&&e.message?(e.code?e.code+': ':'')+e.message+(e.details?' | '+e.details:'')+(e.hint?' | '+e.hint:''):String(e);
+function productFromDb(p){
+  return {
+    id:p.id, name:p.name, price:Number(p.price)||0,
+    cat:p.category||'Đồ uống khác', emoji:p.emoji||'🥤',
+    stock:Number(p.stock)||0, desc:p.description||'',
+    image:p.image||'', available:p.available!==false
+  };
+}
+function orderFromDb(o){
+  return {
+    id:'HLU'+String(o.id).padStart(6,'0'), dbId:o.id,
+    time:new Date(o.created_at).getTime(),
+    items:parseItems(o.items),
+    total:Number(o.total)||0, status:o.status||'Đang xử lý',
+    info:{
+      name:o.customer_name||'', phone:o.phone||'',
+      area:o.dorm_area||'', building:o.building||'',
+      room:o.room||'', note:o.note||'',
+      method:o.delivery_method||'', pay:o.payment_method||''
+    }
+  };
+}
+/* Đọc cột items: hỗ trợ mảng, chuỗi JSON (đơn mới) và chuỗi cũ dạng "Tên (2), Tên (1)" */
+function parseItems(raw){
+  if(Array.isArray(raw))return raw;
+  if(typeof raw==='string'&&raw.trim()){
+    try{const v=JSON.parse(raw);if(Array.isArray(v))return v}catch(e){}
+    return raw.split(/\),\s*/).map(s=>{const m=s.match(/^(.*?)\s*\((\d+)\)?$/);return m?{name:m[1],qty:+m[2]}:{name:s,qty:1}});
+  }
+  return [];
+}
+async function loadRemoteData(){
+  if(!sb){S.loading=false;return;}
+  try{
+    const {data:products,error:pe}=await sb.from('products').select('*').order('id');
+    if(pe) throw pe;
+    if(products && products.length) S.products=products.map(productFromDb);
+    else{
+      const seedRows=SEED.map(p=>({
+        name:p.name,price:p.price,category:p.cat,emoji:p.emoji,
+        stock:p.stock,description:p.desc,image:p.image,available:p.available
+      }));
+      const {data:inserted,error:ie}=await sb.from('products').insert(seedRows).select('*');
+      if(ie) throw ie;
+      if(inserted) S.products=inserted.map(productFromDb);
+    }
+  }catch(err){
+    console.error('Supabase:',errText(err));
+    toast('Lỗi máy chủ'+(err&&err.code?' ('+err.code+')':'')+'. Mở Console (F12) để xem chi tiết.');
+  }finally{
+    S.loading=false;
+    render();
+  }
+}
+/* Đơn của MÁY NÀY: chỉ lấy các đơn có mã đã lưu lúc khách đặt hàng */
+async function refreshMine(){
+  if(!sb)return;
+  if(!S.myIds.length){S.mine=[];return}
+  const {data,error}=await sb.from('orders').select('*').in('id',S.myIds).order('created_at',{ascending:false});
+  if(error)throw error;
+  S.mine=data.map(orderFromDb);
+}
+/* Đơn của TẤT CẢ khách: chỉ dùng cho trang quản trị */
+async function loadAllOrders(){
+  if(!sb)return;
+  const {data,error}=await sb.from('orders').select('*').order('created_at',{ascending:false});
+  if(error)throw error;
+  S.orders=data.map(orderFromDb);
+}
+/* Vào trang nào thì tải dữ liệu của trang đó */
+function enter(v){
+  if(!sb)return;
+  const done=()=>{if(S.view===v)render()},fail=e=>{console.error(errText(e));toast('Không tải được đơn hàng.')};
+  if(v==='orders'){S.busy=true;render();refreshMine().catch(fail).finally(()=>{S.busy=false;done()})}
+  if(v==='admin')loadAllOrders().catch(fail).finally(done);
+}
+/* Tự cập nhật trạng thái đơn mỗi 30 giây khi khách đang xem trang Đơn hàng */
+setInterval(()=>{if(sb&&S.view==='orders'&&!document.hidden)refreshMine().then(()=>S.view==='orders'&&render()).catch(()=>{})},30000);
+async function insertOrderRemote(o){
+  const {data,error}=await sb.from('orders').insert({
+    customer_name:o.info.name, phone:o.info.phone,
+    dorm_area:o.info.area, building:o.info.building, room:o.info.room,
+    note:o.info.note||'', delivery_method:o.info.method,
+    payment_method:o.info.pay, total:o.total, status:o.status,
+    items:o.items.map(i=>`${i.name} (${i.qty})`).join(', ') // dạng dễ đọc: Tên (số lượng), Tên (số lượng)
+  }).select('*').single();
+  if(error) throw error;
+  return orderFromDb(data); // có mã đơn và dbId thật từ database
+}
+/* Lấy tồn kho mới nhất từ database trước khi đặt hàng */
+async function syncStock(ids){
+  const {data,error}=await sb.from('products').select('id,stock,available').in('id',ids);
+  if(error)throw error;
+  data.forEach(r=>{const p=byId(r.id);if(p){p.stock=Number(r.stock)||0;p.available=r.available!==false}});
+  const got=new Set(data.map(r=>r.id));
+  ids.forEach(id=>{if(!got.has(id)){const p=byId(id);if(p)p.available=false}}); // sản phẩm đã bị xóa
+}
+/* Cộng/trừ tồn kho: chỉ ghi duy nhất cột stock nên không ghi đè tên/giá khi cửa hàng đang sửa */
+async function adjustStock(id,delta){
+  const p=byId(id);if(!p)return;
+  if(!sb){p.stock=Math.max(0,p.stock+delta);return}
+  const {data,error}=await sb.from('products').select('stock').eq('id',id).single();
+  if(error)throw error;
+  const next=Math.max(0,(Number(data.stock)||0)+delta);
+  const {error:ue}=await sb.from('products').update({stock:next}).eq('id',id);
+  if(ue)throw ue;
+  p.stock=next;
+}
+async function restock(items){
+  for(const it of items){
+    const p=it.id?byId(it.id):S.products.find(x=>x.name.trim()===String(it.name).trim()); // cột items chỉ có tên nên tìm sản phẩm theo tên
+    if(!p)continue;
+    try{await adjustStock(p.id,Number(it.qty)||0)}catch(err){console.error('Hoàn kho lỗi:',errText(err))}
+  }
+}
+/* Đổi trạng thái đơn. onlyFrom = chỉ đổi khi đơn đang ở trạng thái này (tránh ghi đè khi khách và cửa hàng cùng thao tác).
+   Trả về false nếu đơn đã bị đổi trước đó. Hủy đơn thì hoàn lại kho. */
+async function setOrderStatus(o,st,onlyFrom){
+  if(onlyFrom&&o.status!==onlyFrom)return false;
+  if(sb){
+    let q=sb.from('orders').update({status:st}).eq('id',o.dbId);
+    if(onlyFrom)q=q.eq('status',onlyFrom);
+    const {data,error}=await q.select('id');
+    if(error)throw error;
+    if(!data||!data.length)return false;
+  }
+  const was=o.status;o.status=st;
+  if(st==='Đã hủy'&&was!=='Đã hủy')await restock(o.items);
+  return true;
+}
+/* Khách tự hủy đơn: chỉ được khi cửa hàng chưa xác nhận */
+async function cancelMine(key){
+  const o=S.mine.find(o=>orderKey(o)===key);if(!o)return;
+  try{
+    if(await setOrderStatus(o,'Đã hủy','Đang xử lý'))toast('Đã hủy đơn '+o.id+'.');
+    else{toast('Cửa hàng đã xác nhận đơn nên không thể hủy.');await refreshMine()}
+  }catch(err){console.error(errText(err));toast('Không hủy được đơn. Vui lòng thử lại.')}
+  render();
+}
+async function insertProductRemote(p){
+  const {data,error}=await sb.from('products').insert({
+    name:p.name,price:p.price,category:p.cat,emoji:p.emoji,stock:p.stock,
+    description:p.desc,image:p.image,available:p.available
+  }).select('*').single();
+  if(error) throw error;
+  return productFromDb(data);
+}
+async function updateProductRemote(p){
+  const {data,error}=await sb
+    .from('products')
+    .update({
+      name:p.name,
+      price:p.price,
+      category:p.cat,
+      emoji:p.emoji,
+      stock:p.stock,
+      description:p.desc,
+      image:p.image,
+      available:p.available
+    })
+    .eq('id',p.id)
+    .select('*');
+
+  if(error) throw error;
+
+  if(!data || data.length === 0){
+    throw new Error('Không tìm thấy sản phẩm id=' + p.id + ' trong Supabase');
+  }
+
+  return productFromDb(data[0]);
+}
+async function deleteProductRemote(id){
+  const {error}=await sb.from('products').delete().eq('id',id);
+  if(error) throw error;
+}
 
 /* ===== GIỎ HÀNG ===== */
 function addToCart(id,n=1){const p=byId(id);if(!p||!inStock(p))return toast('Sản phẩm đã hết hàng.');
  const next=(S.cart[id]||0)+n;if(next>p.stock){return toast('Chỉ còn '+p.stock+' sản phẩm trong kho.')}
- S.cart[id]=next;save(K.c,S.cart);toast('Đã thêm sản phẩm vào giỏ hàng.');chrome()}
-function setQty(id,q){const p=byId(id);if(q<=0)delete S.cart[id];else if(p&&q<=p.stock)S.cart[id]=q;else return toast('Vượt quá số lượng trong kho.');save(K.c,S.cart);render()}
+ S.cart[id]=next;delete S.off[id];save(K.c,S.cart);save(K.o,S.off);toast('Đã thêm sản phẩm vào giỏ hàng.');chrome()}
+function setQty(id,q){const p=byId(id);if(q<=0){delete S.cart[id];delete S.off[id]}else if(p&&q<=p.stock)S.cart[id]=q;else return toast('Vượt quá số lượng trong kho.');save(K.c,S.cart);save(K.o,S.off);render()}
 
 /* ===== GIAO DIỆN ===== */
 const NAV=[['home','Trang chủ','🏠'],['products','Sản phẩm','🥤'],['orders','Đơn hàng','📦'],['cart','Giỏ hàng','🛒']];
@@ -136,30 +357,45 @@ function shop(hero){
  <div class="chips">${['Tất cả',...CATS].map(c=>`<button class="chip ${S.cat===c?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>
  <div class="grid" id="grid">${gridHTML()}</div>`}
 function cartView(){const it=cartItems();if(!it.length)return '<div class="empty">Giỏ hàng của bạn đang trống.<br><br><button class="btn" data-go="products">Xem sản phẩm</button></div>';
- return `<h2>Giỏ hàng</h2>`+it.map(({p,q})=>`<div class="box row">${pic(p,'th')}<div class="grow"><b>${esc(p.name)}</b><div class="cat">${money(p.price)} × ${q} = <b>${money(p.price*q)}</b></div></div>
- <div class="qty"><button data-dec="${p.id}" aria-label="Giảm">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Tăng">+</button></div>
- <button class="btn ghost sm" data-rm="${p.id}" aria-label="Xóa">🗑</button></div>`).join('')+
- `<div class="box"><div class="sum"><span>Tổng số sản phẩm</span><b>${cartCount()}</b></div><div class="sum t"><span>Tổng tiền</span><span>${money(cartTotal())}</span></div></div>
- <button class="btn full" data-go="checkout">TIẾN HÀNH ĐẶT HÀNG</button>`}
-function checkoutView(){const it=cartItems();
- if(S.lastOrder){const o=S.lastOrder;return `<div class="box" style="text-align:center"><div style="font-size:48px">✅</div><h2>Đặt hàng thành công!</h2><p>Mã đơn: <b>${o.id}</b></p><p>Tổng tiền: <b>${money(o.total)}</b></p><p><span class="st">${o.status}</span></p><button class="btn" data-go="orders">Theo dõi đơn hàng</button></div>`}
- if(!it.length)return '<div class="empty">Giỏ hàng của bạn đang trống.</div>';
- return `<h2>Đặt hàng</h2><form id="co" class="f box"><label>Họ và tên<input name="name" required placeholder="Nguyễn Văn A"></label>
- <label>Số điện thoại<input name="phone" required inputmode="tel" placeholder="09xxxxxxxx"></label>
- <div class="two"><label>Khu KTX<input name="area" required placeholder="Khu A"></label><label>Tòa<input name="building" required placeholder="A1"></label></div>
- <label>Số phòng<input name="room" required placeholder="A1-305"></label><label>Ghi chú<textarea name="note" rows="2" placeholder="Giao vào buổi tối."></textarea></label>
+ const buyable=it.filter(({p})=>inStock(p)),n=selCount();
+ return `<h2>Giỏ hàng</h2><label class="box row" style="cursor:pointer"><input type="checkbox" class="pick" data-all ${buyable.length&&buyable.every(({p})=>isSel(p.id))?'checked':''} ${buyable.length?'':'disabled'}><b>Chọn tất cả</b></label>`+
+ it.map(({p,q})=>{const ok=inStock(p),on=ok&&isSel(p.id);
+  return `<div class="box row ${on?'':'off'}"><input type="checkbox" class="pick" data-pick="${p.id}" aria-label="Chọn ${esc(p.name)}" ${on?'checked':''} ${ok?'':'disabled'}>${pic(p,'th')}<div class="grow"><b>${esc(p.name)}</b>
+  <div class="cat">${ok?money(p.price)+' × '+q+' = <b>'+money(p.price*q)+'</b>':'<span class="tag no">Hết hàng</span>'}</div>${ok&&q>p.stock?`<div class="tag no">Chỉ còn ${p.stock}</div>`:''}</div>
+  <div class="qty"><button data-dec="${p.id}" aria-label="Giảm">−</button><span>${q}</span><button data-inc="${p.id}" aria-label="Tăng">+</button></div>
+  <button class="btn ghost sm" data-rm="${p.id}" aria-label="Xóa">🗑</button></div>`}).join('')+
+ `<div class="box"><div class="sum"><span>Đã chọn</span><b>${n} sản phẩm</b></div><div class="sum t"><span>Tổng tiền</span><span>${money(selTotal())}</span></div><div class="cat">Sản phẩm không tích ☑ sẽ được giữ lại trong giỏ.</div></div>
+ <button class="btn full" data-go="checkout" ${n?'':'disabled'}>TIẾN HÀNH ĐẶT HÀNG</button>`}
+function checkoutView(){const it=selItems();
+ if(S.lastOrder){const o=S.lastOrder;return `<div class="box" style="text-align:center"><div style="font-size:48px">✅</div><h2>Đặt hàng thành công!</h2><p>Mã đơn: <b>${esc(o.id)}</b></p><p>Tổng tiền: <b>${money(o.total)}</b></p><p><span class="st">${esc(o.status)}</span></p><button class="btn" data-go="orders">Theo dõi đơn hàng</button></div>`}
+ if(!it.length)return '<div class="empty">Bạn chưa chọn sản phẩm nào để đặt.<br><br><button class="btn" data-go="cart">Về giỏ hàng</button></div>';
+ const opt=(arr,ph)=>`<option value="">${ph}</option>`+arr.map(v=>`<option>${esc(v)}</option>`).join('');
+ return `<h2>Đặt hàng</h2><form id="co" class="f box"><label>Họ và tên<input name="name" required maxlength="60" placeholder="Nguyễn Văn A"></label>
+ <label>Số điện thoại<input name="phone" required inputmode="tel" maxlength="10" placeholder="09xxxxxxxx"></label>
+ <label>Khu KTX<select name="area" required>${opt(Object.keys(DORM),'Chọn khu')}</select></label>
+ <div class="two"><label>Tòa<select name="building" required disabled>${opt([],'Chọn tòa')}</select></label><div class="ac"><label>Phòng<input name="room" required autocomplete="off" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" title="Nhập số phòng, ví dụ 305 (tầng 1-5, phòng 01-12)"></label><div class="acl" hidden></div></div></div>
+ <label>Ghi chú<textarea name="note" rows="2" maxlength="200" placeholder="Giao vào buổi tối."></textarea></label>
  <div class="two"><label>Phương thức nhận<select name="method"><option>Giao tận phòng</option><option>Nhận tại điểm giao hàng</option></select></label>
  <label>Thanh toán<select name="pay"><option>Tiền mặt khi nhận hàng</option><option>Chuyển khoản</option></select></label></div>
- <div id="err" style="color:var(--bad)"></div>
- <div>${it.map(({p,q})=>`<div class="sum"><span>${esc(p.name)} × ${q}</span><span>${money(p.price*q)}</span></div>`).join('')}<div class="sum t"><span>Tổng tiền</span><span>${money(cartTotal())}</span></div></div>
+ <div id="err" style="color:var(--bad)" role="alert"></div>
+ <div>${it.map(({p,q})=>`<div class="sum"><span>${esc(p.name)} × ${q}</span><span>${money(p.price*q)}</span></div>`).join('')}<div class="sum t"><span>Tổng tiền</span><span>${money(selTotal())}</span></div></div>
  <button class="btn full">XÁC NHẬN ĐẶT HÀNG</button></form>`}
-function ordersView(){if(!S.orders.length)return '<div class="empty">Bạn chưa có đơn hàng nào.<br><br><button class="btn" data-go="products">Đặt nước ngay</button></div>';
- return '<h2>Đơn hàng của tôi</h2>'+S.orders.map(o=>{const i=STEPS.indexOf(o.status);
- return `<div class="box"><div class="row"><b class="grow">${o.id}</b><span class="st ${o.status==='Đã hủy'?'x':''}">${o.status}</span></div>
+const orderKey=o=>String(o.dbId??o.id);
+function orderCard(o){const i=STEPS.indexOf(o.status),x=o.status==='Đã hủy',k=orderKey(o),asking=S.ask===k;
+ return `<div class="box"><div class="row"><b class="grow">${esc(o.id)}</b><span class="st ${x?'x':''}">${esc(o.status)}</span></div>
  <div class="cat">${new Date(o.time).toLocaleString('vi-VN')}</div>
- <div style="margin:8px 0">${o.items.map(x=>esc(x.name)+' × '+x.qty).join('<br>')}</div>
+ <div class="hint ${x?'x':''}">${esc(HELP[o.status]||'')}</div>
+ <div style="margin:8px 0">${o.items.map(it=>esc(it.name)+' × '+esc(it.qty)).join('<br>')}</div>
  <div class="cat">📍 ${esc(o.info.method)}: ${esc(o.info.area)}, tòa ${esc(o.info.building)}, phòng ${esc(o.info.room)}</div><b>${money(o.total)}</b>
- ${o.status==='Đã hủy'?'':`<div class="tl">${STEPS.map((s,k)=>`<div class="${k<=i?'d':''}">${s}</div>`).join('')}</div>`}</div>`}).join('')}
+ ${x?'':`<div class="tl">${STEPS.map((s,n)=>`<div class="${n<=i?'d':''}${n===i?' now':''}">${s}</div>`).join('')}</div>`}
+ ${o.status==='Đang xử lý'?`<div class="row" style="margin-top:8px"><button class="btn ${asking?'bad':'ghost'} sm" data-cancel="${esc(k)}">${asking?'Bấm lại để hủy đơn':'Hủy đơn'}</button>${asking?'<button class="btn ghost sm" data-cancel-no>Giữ đơn</button>':''}</div>`
+ :(o.status==='Đã xác nhận'||o.status==='Đang giao')?'<div class="cat" style="margin-top:8px">Đơn đã được xác nhận nên không thể tự hủy. Cần hủy, hãy liên hệ cửa hàng.</div>':''}</div>`}
+function ordersView(){
+ if(S.busy&&!S.mine.length)return '<div class="empty">Đang tải đơn hàng…</div>';
+ const head='<div class="row"><h2 class="grow">Đơn hàng của tôi</h2><button class="btn ghost sm" data-reload="mine">↻ Cập nhật</button></div>';
+ if(!S.mine.length)return head+'<div class="empty">Bạn chưa có đơn hàng nào trên máy này.<br><br><button class="btn" data-go="products">Đặt nước ngay</button></div>';
+ const fin=o=>o.status==='Đã giao'||o.status==='Đã hủy',act=S.mine.filter(o=>!fin(o)),old=S.mine.filter(fin);
+ return head+(act.length?'<h3>Đang theo dõi</h3>'+act.map(orderCard).join(''):'')+(old.length?'<h3>Đã xong</h3>'+old.map(orderCard).join(''):'')}
 
 /* ===== TRANG QUẢN TRỊ (demo: chưa có đăng nhập) ===== */
 const live=()=>S.orders.filter(o=>o.status!=='Đã hủy');
@@ -182,7 +418,7 @@ function adminView(){
   <div style="margin:6px 0">${o.items.map(x=>esc(x.name)+' × '+x.qty).join(', ')}</div>${o.info.note?`<div class="cat">Ghi chú: ${esc(o.info.note)}</div>`:''}<b>${money(o.total)}</b>
   <div class="row" style="margin-top:8px;flex-wrap:wrap">${nx&&o.status!=='Đã hủy'?`<button class="btn sm" data-st="${o.id}|${nx}">${nx==='Đã xác nhận'?'Xác nhận đơn':'Chuyển sang '+nx}</button>`:''}
   ${o.status!=='Đã hủy'&&o.status!=='Đã giao'?`<button class="btn bad sm" data-st="${o.id}|Đã hủy">Hủy đơn</button>`:''}</div></div>`}).join(''):'<div class="empty">Chưa có đơn hàng nào.</div>';
- return `<h2>Quản trị</h2><div class="cat" style="margin-bottom:8px">Bản demo: trang này chưa có mật khẩu, ai cũng mở được.</div>
+ return `<div class="row"><h2 class="grow">Quản trị</h2><button class="btn ghost sm" data-reload="all">↻ Tải lại</button></div><div class="cat" style="margin-bottom:8px">Bản demo: trang này chưa có mật khẩu, ai cũng mở được.</div>
  <div class="chips">${tabs.map(t=>`<button class="chip ${S.tab===t[0]?'on':''}" data-tab="${t[0]}">${t[1]}</button>`).join('')}</div>${body}`}
 function productForm(id){const p=id?byId(id):{name:'',price:10000,cat:CATS[0],emoji:'🥤',stock:20,desc:'',image:'',available:true};
  $('#modal').innerHTML=`<div class="ov" data-close><div class="modal"><form id="pf" class="f"><h2>${id?'Sửa':'Thêm'} sản phẩm</h2><input type="hidden" name="id" value="${id}">
@@ -203,12 +439,14 @@ function detail(id){const p=byId(id);if(!p)return;const ok=inStock(p);let q=1;
 const VIEWS={home:()=>shop(true),products:()=>shop(false),cart:cartView,checkout:checkoutView,orders:ordersView,admin:adminView};
 function render(){if(!VIEWS[S.view])S.view='home';$('#app').innerHTML=VIEWS[S.view]();chrome()}
 function go(v){if(v==='search'){S.view='products';location.hash='products';render();const q=$('#q');q&&q.focus();return}
- if(v!=='checkout')S.lastOrder=null;S.view=v;location.hash=v;render();scrollTo(0,0)}
-addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(v&&v!==S.view&&VIEWS[v]){S.view=v;render()}});
+ if(v!=='checkout')S.lastOrder=null;S.ask=null;S.view=v;location.hash=v;render();scrollTo(0,0);enter(v)}
+addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(v&&v!==S.view&&VIEWS[v]){S.view=v;render();enter(v)}});
 
 /* ===== SỰ KIỆN (dùng một bộ lắng nghe chung) ===== */
 document.addEventListener('click',e=>{const t=e.target,g=a=>t.closest('['+a+']');let x;
  if(t.matches('[data-close]')&&t.closest('.ov')===t||t.matches('button[data-close]')){$('#modal').innerHTML='';return}
+ if(x=g('data-room')){x.closest('form').elements.room.value=x.dataset.room;x.parentElement.hidden=true;return}
+ if(!t.closest('.ac'))document.querySelectorAll('.acl').forEach(b=>b.hidden=true);
  if(x=g('data-go'))return go(x.dataset.go);
  if(x=g('data-add'))return addToCart(+x.dataset.add);
  if(x=g('data-open'))return detail(+x.dataset.open);
@@ -218,20 +456,92 @@ document.addEventListener('click',e=>{const t=e.target,g=a=>t.closest('['+a+']')
  if(x=g('data-rm'))return setQty(+x.dataset.rm,0);
  if(x=g('data-tab')){S.tab=x.dataset.tab;return render()}
  if(x=g('data-edit'))return productForm(+x.dataset.edit);
- if(x=g('data-del')){const id=+x.dataset.del;if(S.confirm===id){S.products=S.products.filter(p=>p.id!==id);delete S.cart[id];save(K.p,S.products);save(K.c,S.cart);S.confirm=null;toast('Đã xóa sản phẩm.')}else S.confirm=id;return render()}
- if(x=g('data-st')){const[id,st]=x.dataset.st.split('|');const o=S.orders.find(o=>o.id===id);
-  if(st==='Đã hủy'&&o.status!=='Đã hủy')o.items.forEach(i=>{const p=byId(i.id);if(p)p.stock+=i.qty});/* hủy đơn thì hoàn lại kho */
-  o.status=st;save(K.o,S.orders);save(K.p,S.products);toast('Đã cập nhật: '+st);return render()}});
+ if(x=g('data-del')){const id=+x.dataset.del;if(S.confirm===id){
+   (async()=>{
+     try{
+       if(sb) await deleteProductRemote(id);
+       S.products=S.products.filter(p=>p.id!==id);delete S.cart[id];save(K.c,S.cart);
+       S.confirm=null;toast('Đã xóa sản phẩm.');render();
+     }catch(err){console.error(errText(err));toast('Không xóa được sản phẩm.');}
+   })();
+ }else S.confirm=id;return render()}
+ if(x=g('data-cancel')){const key=x.dataset.cancel;if(S.ask!==key){S.ask=key;return render()}S.ask=null;return cancelMine(key)} // bấm 2 lần để hủy
+ if(g('data-cancel-no')){S.ask=null;return render()}
+ if(x=g('data-reload')){const all=x.dataset.reload==='all';(all?loadAllOrders():refreshMine()).then(()=>{toast('Đã cập nhật.');render()}).catch(err=>{console.error(errText(err));toast('Không tải được đơn hàng.')});return}
+ if(x=g('data-st')){const[id,st]=x.dataset.st.split('|');const o=S.orders.find(o=>o.id===id);if(!o)return;
+   (async()=>{
+     try{
+       if(await setOrderStatus(o,st,o.status))toast('Đã cập nhật: '+st);
+       else{toast('Đơn vừa được thay đổi nơi khác. Đã tải lại danh sách.');await loadAllOrders()}
+     }catch(err){console.error(errText(err));toast('Không cập nhật được đơn hàng.');}
+     render();
+   })();
+   return}
+});
+document.addEventListener('change',e=>{const t=e.target,f=t.form;
+ /* Ô ☑ trong giỏ hàng: chỉ ghi nhớ sản phẩm nào KHÔNG được tích */
+ if(t.hasAttribute('data-pick')||t.hasAttribute('data-all')){
+   const ids=t.hasAttribute('data-all')?cartItems().filter(({p})=>inStock(p)).map(({p})=>p.id):[+t.dataset.pick];
+   ids.forEach(id=>{if(t.checked)delete S.off[id];else S.off[id]=true});
+   save(K.o,S.off);render();
+   const again=t.dataset.pick&&$('[data-pick="'+t.dataset.pick+'"]');if(again)again.focus();return}
+ /* Chọn Khu thì danh sách Tòa tự cập nhật (khu chỉ có 1 tòa thì chọn sẵn) */
+ if(f&&f.id==='co'&&t.name==='area'){
+   const b=f.elements.building,arr=buildingsOf(t.value);
+   b.innerHTML='<option value="">Chọn tòa</option>'+arr.map(v=>'<option>'+esc(v)+'</option>').join('');
+   b.disabled=!arr.length;if(arr.length===1)b.value=arr[0]}
+});
 document.addEventListener('input',e=>{if(e.target.id==='q'){S.q=e.target.value;$('#grid').innerHTML=gridHTML()}});
+/* Ô Phòng: để trống, khi khách gõ thì hiện danh sách các phòng bắt đầu bằng số đã gõ (101-112, 201-212, ... 501-512) */
+document.addEventListener('input',e=>{const t=e.target;if(t.name!=='room'||!t.form||t.form.id!=='co')return;
+ const v=t.value.replace(/\D/g,'').slice(0,3),box=t.form.querySelector('.acl'),arr=ROOMS.filter(n=>n.startsWith(t.value.replace(/\D/g,'').slice(0,3)));t.value=v;
+ box.innerHTML=v&&!(arr.length===1&&arr[0]===v)?arr.map(n=>`<button type="button" data-room="${n}">${n}</button>`).join(''):'';
+ box.hidden=!box.innerHTML});
 document.addEventListener('submit',e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));
- if(e.target.id==='co'){if(!/^0\d{9}$/.test(f.phone.trim()))return $('#err').textContent='Số điện thoại cần 10 chữ số, bắt đầu bằng 0.';
-  const it=cartItems();if(it.some(({p,q})=>q>p.stock||!inStock(p)))return $('#err').textContent='Có sản phẩm đã hết hoặc không đủ hàng. Vui lòng kiểm tra giỏ.';
-  const o={id:'HLU'+Date.now().toString().slice(-6),time:Date.now(),items:it.map(({p,q})=>({id:p.id,name:p.name,price:p.price,qty:q})),total:cartTotal(),info:f,status:'Đang xử lý'};
-  it.forEach(({p,q})=>p.stock-=q);S.orders.unshift(o);S.cart={};S.lastOrder=o;save(K.o,S.orders);save(K.p,S.products);save(K.c,S.cart);render()}
- if(e.target.id==='pf'){const id=+f.id,d={name:f.name.trim(),price:+f.price,stock:+f.stock,cat:f.cat,emoji:f.emoji||'🥤',image:f.image.trim(),desc:f.desc,available:!!f.available};
-  if(id)Object.assign(byId(id),d);else S.products.push({id:Math.max(0,...S.products.map(p=>p.id))+1,...d});
-  save(K.p,S.products);$('#modal').innerHTML='';toast('Đã lưu sản phẩm.');render()}});
+ if(e.target.id==='co'){
+   const fail=m=>{$('#err').textContent=m},btn=e.target.querySelector('.btn.full');
+   f.name=f.name.trim();f.note=(f.note||'').trim();f.phone=f.phone.trim();
+   if(!f.name)return fail('Vui lòng nhập họ và tên.');
+   if(!/^0\d{9}$/.test(f.phone))return fail('Số điện thoại cần 10 chữ số, bắt đầu bằng 0.');
+   f.room=f.room.trim();
+   if(!buildingsOf(f.area).includes(f.building))return fail('Vui lòng chọn lại Khu và Tòa trong danh sách.');
+   if(!validRoom(f.room))return fail('Số phòng không hợp lệ. Phòng gồm 101-112, 201-212, ... 501-512.');
+   const it=selItems();if(!it.length)return fail('Bạn chưa chọn sản phẩm nào để đặt.');
+   btn.disabled=true;fail(''); // khóa nút để không đặt trùng đơn
+   (async()=>{
+     let order;
+     try{
+       if(sb)await syncStock(it.map(x=>x.p.id));
+       if(it.some(({p,q})=>q>p.stock||!inStock(p))){fail('Có sản phẩm đã hết hoặc không đủ hàng. Vui lòng kiểm tra lại giỏ hàng.');btn.disabled=false;return}
+       order={id:'',time:Date.now(),items:it.map(({p,q})=>({id:p.id,name:p.name,price:p.price,qty:q})),total:selTotal(),info:f,status:'Đang xử lý'};
+       if(sb){const items=order.items;order=await insertOrderRemote(order);order.items=items;S.myIds.push(order.dbId);save(K.m,S.myIds)}
+       else order.id='HLU'+Date.now().toString().slice(-6);
+     }catch(err){console.error(errText(err));fail('Không thể gửi đơn hàng lên máy chủ. Vui lòng thử lại.');btn.disabled=false;return}
+     /* Từ đây đơn đã được tạo: lỗi trừ kho chỉ ghi log, không bắt khách đặt lại */
+     for(const {p,q} of it){try{await adjustStock(p.id,-q)}catch(err){console.error('Trừ kho lỗi:',errText(err))}}
+     S.mine.unshift(order);if(!sb)S.orders.unshift(order);
+     it.forEach(({p})=>{delete S.cart[p.id];delete S.off[p.id]}); // chỉ xóa món đã đặt, món không tích vẫn ở trong giỏ
+     save(K.c,S.cart);save(K.o,S.off);S.lastOrder=order;render();
+   })();
+ }
+ if(e.target.id==='pf'){
+   const id=+f.id,d={name:f.name.trim(),price:+f.price,stock:+f.stock,cat:f.cat,emoji:f.emoji||'🥤',image:f.image.trim(),desc:f.desc,available:!!f.available};
+   (async()=>{
+     try{
+       if(sb){
+         if(id){const updated=await updateProductRemote({...d,id});Object.assign(byId(id),updated);}
+         else{const created=await insertProductRemote(d);S.products.push(created);}
+       }else{
+         if(id)Object.assign(byId(id),d);
+         else S.products.push({id:Math.max(0,...S.products.map(p=>p.id))+1,...d});
+       }
+       $('#modal').innerHTML='';toast('Đã lưu sản phẩm.');render();
+     }catch(err){console.error(errText(err));toast('Không lưu được sản phẩm.');}
+   })();
+ }
+});
 
 S.view=location.hash.slice(1)||'home';render();
-setTimeout(()=>{S.loading=false;render()},350); /* giả lập tải dữ liệu; khi có API thật, thay bằng fetch */
+loadRemoteData();
+enter(S.view);
 </script></body></html>
